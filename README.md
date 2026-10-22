@@ -1,38 +1,32 @@
-# CHAPPY Live Detector (STEP 2-C)
+# CHAPPY Text Probe (STEP 2-D)
 
-Small Android diagnostic app for the **Project with CHAPPY** official ChatGPT Live voice path. Independent of existing Avatar 0 / Miko / CHAPPY Brain Worker assets.
+**Branch:** `experiment/text-event-detector-v1`
 
-## What this prototype does
+This is a metadata-only accessibility event probe for Android.
+It observes events from `com.openai.chatgpt`, records type/timestamp
+and an aggregate count locally, and never accesses or stores
+message text, screen images, audio or passwords.
+No network permission; no microphone or recording permission.
 
-- Shows count of playback configurations reported as active by Android AudioManager.
-- Logs playback-configuration notifications and gives manual timestamp markers for "CHAPPY speaking" vs. "silent".
-- Uses **no microphone, audio capture, network, or accessibility permissions**.
-- Does not capture, record, transcribe, or modify ChatGPT audio.
-- **Foreground-only diagnostic**: checks while its own screen is visible.
+## Goal
+Determine if the official ChatGPT Live app emits accessibility text/content
+update events in the foreground and after it moves behind the browser/Miko UI.
+This is *not* proof of voice activity detection or lip-sync.
 
-Android playback activity is **not** a direct indicator of spoken audio. ChatGPT Live may keep a player active through silent periods, and other apps contribute events.
+## Successful build base
+Uses the Gradle/Android SDK GitHub Actions setup proven by CHAPPY Live Detector
+Run #5 on the `main` branch. The known-good Detector version remains
+unchanged on `main`.
 
-## Build (GitHub Actions)
+## User test
+1. Install the `CHAPPY-Text-Probe-debug-APK` artifact from this branch.
+2. Open the app and tap Android Accessibility settings.
+3. Enable CHAPPY Text Probe explicitly; Android 13+ may restrict sideloaded
+   app accessibility toggles. The user must decide whether to allow it.
+4. Return, reset results, switch to ChatGPT Live foreground, talk ~10s, return,
+   and inspect the counters.
+5. Repeat with ChatGPT Live behind Miko/browser if the foreground test responds.
+6. Turn off the accessibility service after testing.
 
-1. Open **Actions** -> **Build Android detector APK** in this repository.
-2. Look for the workflow triggered by the push, or press **Run workflow**.
-3. After a green-success run, open that run, download artifact **CHAPPY-Live-Detector-debug-APK**, extract the ZIP to get `app-debug.apk`.
-4. Install it on Android after verifying it comes from this repository.
-
-Public repo + GitHub-hosted standard runner is intended to stay on the free GitHub Actions path; paid runners and secrets are not used.
-
-## Test
-
-1. Start official ChatGPT Live.
-2. Return to Home, open **CHAPPY Live Detector**, leaving Live in the background.
-3. Compare the count and callback log during CHAPPY speech, silence, and your speech.
-4. Tap the appropriate marker during each interval, copy the log and share results.
-5. If needed, test with Live fully stopped as a baseline.
-
-Success criterion for a future mouth-animation trigger: **repeatable state transition at speech start/end**. A static active count is not success.
-
-## Build config
-
-- Android minSdk 26 / compileSdk 35 / targetSdk 35
-- Java 17, Gradle 8.11.1, Android Gradle Plugin 8.9.2
-- Standard GitHub-hosted Ubuntu 24.04
+This service only receives accessibility events permitted by Android. Even
+if text/content events are detected, they are not necessarily speech events.
