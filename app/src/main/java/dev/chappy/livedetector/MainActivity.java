@@ -81,13 +81,10 @@ public class MainActivity extends Activity {
     }
 
     private void updateStatus(List<AudioPlaybackConfiguration> configs, boolean fromCallback) {
-        int active = 0;
-        if (configs != null) {
-            for (AudioPlaybackConfiguration config : configs) {
-                if (config.isActive()) active++;
-            }
-        }
+        // Android returns a list of currently active playback configurations.
+        // isActive()/getPlayerState() are not public APIs on this class.
         int visible = configs == null ? 0 : configs.size();
+        int active = visible;
         countView.setText("再生中の構成数: " + active);
         boolean changed = active != lastCount;
         lastCount = active;
