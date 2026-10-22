@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_probe_accessibility_description">ChatGPTの画面更新イベントの種類と時刻だけを端末内で計数します。メッセージ本文や画面画像を収集しません。</string>
+</resources>
