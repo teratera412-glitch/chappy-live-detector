@@ -30,3 +30,13 @@ unchanged on `main`.
 
 This service only receives accessibility events permitted by Android. Even
 if text/content events are detected, they are not necessarily speech events.
+
+## Artifact expiration and reissue
+
+The Actions workflow publishes `CHAPPY-Text-Probe-debug-APK` as an artifact
+retained for 3 days. When it expires, the APK is no longer downloadable from
+the old run. To reissue an unchanged binary, use the workflow's `Run workflow`
+control on the `experiment/text-event-detector-v1` branch, or push a documentation
+update to this branch and check the new successful build's Artifacts section.
+The previous successful run #39769649910 is retained as build evidence, not
+as a permanent downloadable APK. Do not change the original Detector on `main`.
