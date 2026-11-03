@@ -1,13 +1,10 @@
-name: Build CHAPPY Text Probe APK
-
+name: Build CHAPPY Text Probe v0.3 APK
 on:
   workflow_dispatch:
   push:
-    branches: ['experiment/text-event-detector-v1']
-
+    branches: ['experiment/text-event-timing-v03']
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -27,7 +24,7 @@ jobs:
           echo "Using $SDKMGR"
           yes | "$SDKMGR" --licenses > /dev/null || true
           "$SDKMGR" 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Set up Gradle (no wrapper needed)
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
@@ -37,7 +34,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CHAPPY-Text-Probe-debug-APK
+          name: CHAPPY-Text-Probe-v03-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 3
           if-no-files-found: error
