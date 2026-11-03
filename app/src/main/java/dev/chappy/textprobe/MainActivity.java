@@ -20,15 +20,14 @@ import android.widget.Toast;
 
 import java.util.List;
 
-/** On-device readout for the metadata-only Accessibility event experiment. */
+/** Diagnostic UI for four controlled 10-second comparison tests. */
 public final class MainActivity extends Activity {
-    private static final int LIGHT = 0xffd6e4f0;
     private TextView statusView;
-    private TextView resultsView;
+    private TextView reportView;
 
     @Override
-    protected void onCreate(Bundle state) {
-        super.onCreate(state);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         buildScreen();
     }
 
@@ -39,18 +38,14 @@ public final class MainActivity extends Activity {
     }
 
     private boolean isServiceEnabled() {
-        AccessibilityManager manager = (AccessibilityManager)
-                getSystemService(Context.ACCESSIBILITY_SERVICE);
-        if (manager == null) return false;
-        List<AccessibilityServiceInfo> list =
-                manager.getEnabledAccessibilityServiceList(
-                        AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
-        String serviceClass = TextEventService.class.getName();
-        for (AccessibilityServiceInfo info : list) {
-            if (info.getResolveInfo() != null
-                    && info.getResolveInfo().serviceInfo != null
+        AccessibilityManager mgr = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+        if (mgr == null) return false;
+        List<AccessibilityServiceInfo> enabled =
+                mgr.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        for (AccessibilityServiceInfo info : enabled) {
+            if (info.getResolveInfo() != null && info.getResolveInfo().serviceInfo != null
                     && getPackageName().equals(info.getResolveInfo().serviceInfo.packageName)
-                    && serviceClass.equals(info.getResolveInfo().serviceInfo.name)) {
+                    && TextEventService.class.getName().equals(info.getResolveInfo().serviceInfo.name)) {
                 return true;
             }
         }
@@ -59,93 +54,96 @@ public final class MainActivity extends Activity {
 
     private void refresh() {
         boolean enabled = isServiceEnabled();
-        statusView.setText(enabled
-                ? "監視権限: ON  ✅（ChatGPTイベントを収集）"
-                : "監視権限: OFF  ⚠️（Android設定で有効にする）");
-        statusView.setTextColor(enabled ? 0xff66e9b9 : 0xffffd18a);
-        resultsView.setText(ProbeStore.report(this));
+        statusView.setText(enabled ? "Accessibility監視: ON ✅" : "Accessibility監視: OFF ⚠️");
+        statusView.setTextColor(enabled ? 0xff63e5b2 : 0xffffce80);
+        reportView.setText(ProbeStore.report(this));
+    }
+
+    private void startTest(String mode) {
+        if (!isServiceEnabled()) {
+            Toast.makeText(this, "先にAccessibility監視を有効にしてください", Toast.LENGTH_LONG).show();
+            return;
+        }
+        ProbeStore.start(this, mode);
+        refresh();
+        Toast.makeText(this, "6秒後から10秒間だけ測定します", Toast.LENGTH_LONG).show();
     }
 
     private void buildScreen() {
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(0xff101725);
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(16), dp(24), dp(16), dp(36));
-        scroll.addView(layout);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(16), dp(22), dp(16), dp(30));
+        scroll.addView(root);
 
-        addText(layout, "CHAPPY Text Probe", 25, Color.WHITE).setTypeface(null, Typeface.BOLD);
-        addText(layout, "STEP 2-D | 公式Liveの文字更新検知", 14, 0xff9fb4cb);
-        gap(layout, 16);
-        statusView = addText(layout, "監視権限を確認中…", 17, Color.WHITE);
-        gap(layout, 10);
-        addButton(layout, "① Androidのアクセシビリティ設定を開く", () -> {
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        addText(root, "CHAPPY Text Probe v0.3", 24, Color.WHITE).setTypeface(null, Typeface.BOLD);
+        addText(root, "STEP 2-D | イベント正体切り分け実験", 14, 0xffa5bbd1);
+        gap(root, 13);
+        statusView = addText(root, "監視状態を確認中", 17, 0xffffce80);
+        addButton(root, "Android Accessibility設定", () ->
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        gap(root, 10);
+        addText(root, "【共通操作】", 16, Color.WHITE).setTypeface(null, Typeface.BOLD);
+        addText(root,
+                "① 試験を1つ選ぶ\n"
+                + "② 6秒の準備時間内にChatGPTの指定画面に移動\n"
+                + "③ 続く10秒だけ指定条件を保つ\n"
+                + "④ Probeに戻って「結果更新」→「コピー」\n"
+                + "※別条件を開始すると前回の記録を上書きします。先にコピーしてね。",
+                14, 0xffd4e1ef);
+        gap(root, 10);
+        addButton(root, "A｜通常チャット画面・Liveなし", () -> startTest("A_通常画面_Liveなし"));
+        addButton(root, "B｜Live文字表示・10秒無言", () -> startTest("B_Live文字表示_無言"));
+        addButton(root, "C｜Live文字表示・CHAPPY発話", () -> startTest("C_Live文字表示_発話"));
+        addButton(root, "D｜Live終了の瞬間を計測", () -> startTest("D_Live終了操作"));
+        gap(root, 9);
+        addButton(root, "結果を更新", this::refresh);
+        addButton(root, "結果をコピー", () -> {
+            ClipboardManager mgr = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            mgr.setPrimaryClip(ClipData.newPlainText("CHAPPY v0.3 result", ProbeStore.report(this)));
+            Toast.makeText(this, "コピーしました", Toast.LENGTH_SHORT).show();
         });
-        addButton(layout, "② 結果をリセット（測定前）", () -> {
-            ProbeStore.reset(this);
-            refresh();
-            Toast.makeText(this, "カウンタをリセットしました", Toast.LENGTH_SHORT).show();
-        });
-        addButton(layout, "③ 結果を更新（ChatGPTから戻ったら）", this::refresh);
-        addButton(layout, "④ 結果をコピー", () -> {
-            ClipboardManager manager = (ClipboardManager)
-                    getSystemService(Context.CLIPBOARD_SERVICE);
-            manager.setPrimaryClip(ClipData.newPlainText(
-                    "CHAPPY Text Probe results", ProbeStore.report(this)));
-            Toast.makeText(this, "結果をコピーしました", Toast.LENGTH_SHORT).show();
-        });
-        gap(layout, 15);
-        addText(layout, "【最初のテスト】", 17, Color.WHITE).setTypeface(null, Typeface.BOLD);
-        addText(layout,
-                "1. 設定から「CHAPPY Text Probe」のアクセシビリティを自分でONにする。\n"
-                        + "2. この画面に戻り「結果をリセット」を押す。\n"
-                        + "3. ChatGPT Liveを前面に出して数秒話す。\n"
-                        + "4. 会話を終えて戻り「結果を更新」。数字を確認する。\n"
-                        + "5. 次の段階で、Mikoを前面に出した状態でも比較する。",
-                15, LIGHT);
-        gap(layout, 15);
-        addText(layout, "【イベント統計】", 17, Color.WHITE).setTypeface(null, Typeface.BOLD);
-        resultsView = addText(layout, "未取得", 13, 0xff6be8bb);
-        resultsView.setTypeface(Typeface.MONOSPACE);
-        gap(layout, 15);
-        addText(layout,
-                "【重要】Androidのアクセシビリティは画面に関する強い権限です。"
-                        + "本アプリの実装はcom.openai.chatgptのイベント種類と時刻だけを保存し、"
-                        + "文字本文、パスワード、画面画像、音声は取得・送信しません。"
-                        + "ネットワーク権限もありません。計測が終わったら設定からOFFにしてください。"
-                        + "イベント発生＝CHAPPYの発話とは限りません。",
-                13, 0xffffcf8b);
+        gap(root, 13);
+        addText(root, "【10秒間の1秒ごとの集計】", 16, Color.WHITE).setTypeface(null, Typeface.BOLD);
+        reportView = addText(root, "", 13, 0xff67e8b7);
+        reportView.setTypeface(Typeface.MONOSPACE);
+        gap(root, 12);
+        addText(root,
+                "注意：com.openai.chatgptのイベント種類・フラグ・時刻のみ保存。"
+                + "文字本文・画面内容・音声・画像は収集しません。"
+                + "ネットワーク権限なし。検証後はAccessibility監視をOFFにしてください。"
+                + "イベントが発生してもCHAPPYの発話を示すとは限りません。",
+                13, 0xffffd18a);
         setContentView(scroll);
     }
 
-    private TextView addText(LinearLayout root, String text, int sp, int color) {
+    private TextView addText(LinearLayout parent, String text, int sizeSp, int color) {
         TextView view = new TextView(this);
         view.setText(text);
-        view.setTextSize(sp);
+        view.setTextSize(sizeSp);
         view.setTextColor(color);
-        view.setTextIsSelectable(false);
-        root.addView(view, new LinearLayout.LayoutParams(-1, -2));
+        parent.addView(view, new LinearLayout.LayoutParams(-1, -2));
         return view;
     }
 
-    private void addButton(LinearLayout root, String title, Runnable action) {
+    private void addButton(LinearLayout parent, String title, Runnable action) {
         Button button = new Button(this);
         button.setText(title);
         button.setAllCaps(false);
         button.setTextSize(14);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(56));
-        params.topMargin = dp(7);
-        root.addView(button, params);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(52));
+        p.topMargin = dp(6);
+        parent.addView(button, p);
         button.setOnClickListener(v -> action.run());
     }
 
-    private void gap(LinearLayout root, int amount) {
+    private void gap(LinearLayout parent, int heightDp) {
         View spacer = new View(this);
-        root.addView(spacer, new LinearLayout.LayoutParams(1, dp(amount)));
+        parent.addView(spacer, new LinearLayout.LayoutParams(1, dp(heightDp)));
     }
 
-    private int dp(int count) {
-        return Math.round(count * getResources().getDisplayMetrics().density);
+    private int dp(int n) {
+        return Math.round(n * getResources().getDisplayMetrics().density);
     }
 }
