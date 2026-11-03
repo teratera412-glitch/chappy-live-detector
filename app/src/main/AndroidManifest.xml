@@ -2,12 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:allowBackup="false"
-        android:label="CHAPPY Text Probe"
+        android:label="CHAPPY Text Probe 0.3"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -15,15 +13,14 @@
         </activity>
         <service
             android:name=".TextEventService"
-            android:label="CHAPPY Text Probe"
+            android:label="CHAPPY Text Probe 0.3"
             android:description="@string/text_probe_accessibility_description"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
+            <meta-data android:name="android.accessibilityservice"
                 android:resource="@xml/text_probe_service" />
         </service>
     </application>
